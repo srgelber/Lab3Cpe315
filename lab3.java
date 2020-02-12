@@ -2,58 +2,274 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.Scanner;
 import java.util.*;
+import java.util.stream.IntStream;
 
 //Simon Gelber: CPE315(SENG)
 public class lab3 {
 
-        public static void main(String[] args){
-            Dictionary labelDict = new Hashtable();
-            try{
-                    Scanner scanner = new Scanner(new File(args[0]));
-                    int count = 0;
+        public static void main(String[] args)throws FileNotFoundException{
 
-                    //first pass to get label addresses
-                    while(scanner.hasNextLine()){
-                        boolean flag = false;
-                        for (String x : splitLine(scanner.nextLine())){
-                            if (x.contains(":")){
-                                labelDict.put(x.substring(0,x.length()-1), count);
-                            }
-                            if(isInstruction(x)){
-                                flag = true;
-                            }
-                        }
-                        if(flag == true)
-                        count += 1;
+            Map<String, Integer> registers  = new HashMap<String, Integer>() {{
+                put("zero", 0);
+                put("0", 0);
+                put("v0", 0);
+                put("v1", 0);
+                put("a0", 0);
+                put("a1", 0);
+                put("a2", 0);
+                put("a3", 0);
+                put("t0", 0);
+                put("t1", 0);
+                put("t2", 0);
+                put("t3", 0);
+                put("t4", 0);
+                put("t5", 0);
+                put("t6", 0);
+                put("t7", 0);
+                put("s0", 0);
+                put("s1", 0);
+                put("s2", 0);
+                put("s3", 0);
+                put("s4", 0);
+                put("s5", 0);
+                put("s6", 0);
+                put("s7", 0);
+                put("t8", 0);
+                put("t9", 0);
+                put("sp", 0);
+                put("ra", 0);
+            }};
+
+            Dictionary labelDict = new Hashtable();
+            Scanner scanner = new Scanner(new File(args[0]));
+            int count = 0;
+
+            //first pass to get label addresses
+            while(scanner.hasNextLine()){
+                boolean flag = false;
+                for (String x : splitLine(scanner.nextLine())){
+                    if (x.contains(":")){
+                        labelDict.put(x.substring(0,x.length()-1), count);
                     }
-                    scanner.close();
-            } catch(FileNotFoundException e){
-                e.printStackTrace();
+                    if(isInstruction(x)){
+                        flag = true;
+                    }
+                }
+                if(flag == true)
+                count += 1;
             }
+            scanner.close();
+
             //second pass
-            try{
-                    Scanner scanner = new Scanner(new File(args[0]));
-                    int lineCount = 0;
-                    ArrayList<ArrayList<String>> instructionArray = new ArrayList<ArrayList<String>>();
-                    while(scanner.hasNextLine()){
-                        String line0 = scanner.nextLine().replaceAll(":(?!$)", ": ");
-                        line0 = line0.replaceAll("#(?!$)", " #");
-                        ArrayList<String> lineFinal = getInstruction(line0, labelDict, lineCount);
-                        if(!lineFinal.isEmpty()){
-                        	instructionArray.add(lineFinal);
-                        }
-                        //System.out.println(lineFinal);
-                        if(!lineFinal.equals("")){
-                            
-                            lineCount += 1;
-                    }
-                    }
-                    System.out.print(instructionArray);
-                    
-                    scanner.close();
-            } catch(FileNotFoundException e){
-                e.printStackTrace();
+            scanner = new Scanner(new File(args[0]));
+            int lineCount = 0;
+            ArrayList<ArrayList<String>> instructionArray = new ArrayList<ArrayList<String>>();
+            while(scanner.hasNextLine()){
+                String line0 = scanner.nextLine().replaceAll(":(?!$)", ": ");
+                line0 = line0.replaceAll("#(?!$)", " #");
+                ArrayList<String> lineFinal = getInstruction(line0, labelDict, lineCount);
+                if(!lineFinal.isEmpty()){
+                    instructionArray.add(lineFinal);
+                }
+                //System.out.println(lineFinal);
+                if(!lineFinal.equals("")){
+
+                    lineCount += 1;
             }
+            }
+            //System.out.print(instructionArray);
+
+            scanner.close();
+
+
+            int[] dataMem = new int[8192];
+
+            // interactive
+            Scanner myObj = new Scanner(System.in);
+            String input = "";
+
+            int currPos = 0;    //pointer to current inst in instArray
+
+            while (!input.equals("q")){
+                System.out.print("mips> ");
+
+                input = myObj.nextLine();  // Read user input
+
+                // interactive input
+                if (input.charAt(0) == 's'){
+                    int iter = 1;
+
+                    if (input.length() > 1){
+
+                        int num = Character.getNumericValue(input.charAt(1));
+
+                        if( num > 0 && num + currPos <= instructionArray.size()){
+                            iter = num;
+                        }
+                    }
+
+                    int cnt = 0;
+
+                    while (cnt != iter && currPos <= instructionArray.size()){
+
+                        currPos += cnt;
+
+                        ArrayList currCmd = instructionArray.get(currPos);
+
+                        if (currCmd.get(0).equals("add")){
+
+                            String destReg = (String) currCmd.get(1);
+                            String readReg1 = (String) currCmd.get(2);
+                            String readReg2 = (String) currCmd.get(3);
+
+                            int res = registers.get(readReg1) + registers.get(readReg2);
+
+                            registers.put(destReg, res);
+                        }
+                        else if (currCmd.get(0).equals("and")){
+
+                            String destReg = (String) currCmd.get(1);
+                            String readReg1 = (String) currCmd.get(2);
+                            String readReg2 = (String) currCmd.get(3);
+
+                            int res = registers.get(readReg1) & registers.get(readReg2);
+
+                            registers.put(destReg, res);
+                        }
+                        else if (currCmd.get(0).equals("or")){
+
+                            String destReg = (String) currCmd.get(1);
+                            String readReg1 = (String) currCmd.get(2);
+                            String readReg2 = (String) currCmd.get(3);
+
+                            int res = registers.get(readReg1) | registers.get(readReg2);
+
+                            registers.put(destReg, res);
+                        }
+                        else if (currCmd.get(0).equals("sub")){
+
+                            String destReg = (String) currCmd.get(1);
+                            String readReg1 = (String) currCmd.get(2);
+                            String readReg2 = (String) currCmd.get(3);
+
+                            int res = registers.get(readReg1) - registers.get(readReg2);
+
+                            registers.put(destReg, res);
+                        }
+                        else if (currCmd.get(0).equals("slt")){
+
+                            String destReg = (String) currCmd.get(1);
+                            String readReg1 = (String) currCmd.get(2);
+                            String readReg2 = (String) currCmd.get(3);
+
+                            if (registers.get(readReg1) < registers.get(readReg2)) registers.put(destReg, 1);
+                            else registers.put(destReg, 0);
+                        }
+                        else if (currCmd.get(0).equals("sll")){
+
+                            String destReg = (String) currCmd.get(1);
+                            String readReg1 = (String) currCmd.get(2);
+                            String imm = (String) currCmd.get(3);
+
+                            int res = registers.get(readReg1) << Integer.parseInt(imm);
+
+                            registers.put(destReg, res);
+                        }
+                        else if (currCmd.get(0).equals("addi")){
+
+                            String destReg = (String) currCmd.get(1);
+                            String readReg1 = (String) currCmd.get(2);
+                            String imm = (String) currCmd.get(3);
+
+                            int res = registers.get(readReg1) + Integer.parseInt(imm);
+
+                            registers.put(destReg, res);
+                        }
+
+                        // incomplete cmds
+
+//                        else if (currCmd[0].equals("beq")){
+//
+//                            String destReg = (String) currCmd.get(1);
+//                            String readReg1 = (String) currCmd.get(2);
+//                            String offset = (String) currCmd.get(3);
+//
+//                            int res = registers.get(readReg1) + Integer.parseInt(imm);
+//
+//                            registers.put(destReg, res);
+//                        }
+//                        else if (currCmd[0].equals("bne")){
+//
+//                            String readReg1 = currCmd[1];
+//                            String readReg2 = currCmd[2];
+//                            String offset = currCmd[3];
+//
+//                            int res = registers.get(readReg1) + Integer.parseInt(imm);
+//
+//                            registers.put(destReg, res);
+//                        }
+//                        else if (currCmd[0].equals("lw")){
+//
+//                            String readReg1 = currCmd[1];
+//                            String readReg2 = currCmd[2];
+//                            String offset = currCmd[3];
+//
+//                            int res = registers.get(readReg1) + Integer.parseInt(imm);
+//
+//                            registers.put(destReg, res);
+//                        }
+//                        else if (currCmd[0].equals("sw")){
+//
+//                            String readReg1 = currCmd[1];
+//                            String readReg2 = currCmd[2];
+//                            String offset = currCmd[3];
+//
+//                            int res = registers.get(readReg1) + Integer.parseInt(imm);
+//
+//                            registers.put(destReg, res);
+//                        }
+//                        else if (currCmd[0].equals("j")){
+//
+//                            String readReg1 = currCmd[1];
+//                            String readReg2 = currCmd[2];
+//                            String offset = currCmd[3];
+//
+//                            int res = registers.get(readReg1) + Integer.parseInt(imm);
+//
+//                            registers.put(destReg, res);
+//                        }
+//                        else if (currCmd[0].equals("jal")){
+//
+//                            String readReg1 = currCmd[1];
+//                            String readReg2 = currCmd[2];
+//                            String offset = currCmd[3];
+//
+//                            int res = registers.get(readReg1) + Integer.parseInt(imm);
+//
+//                            registers.put(destReg, res);
+//                        }
+//                        else if (currCmd[0].equals("jr")){
+//
+//                            String readReg1 = currCmd[1];
+//                            String readReg2 = currCmd[2];
+//                            String offset = currCmd[3];
+//
+//                            int res = registers.get(readReg1) + Integer.parseInt(imm);
+//
+//                            registers.put(destReg, res);
+//                        }
+
+
+                        cnt++;
+                        currPos++;
+                    }
+                }
+
+                // if else (input.charAt(0) == 'h')
+
+
+            }
+
         }
         //function which processes each line
         public static ArrayList<String> getInstruction(String line, Dictionary labelDict, int lineCount){
