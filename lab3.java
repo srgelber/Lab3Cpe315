@@ -269,7 +269,7 @@ public class lab3 {
                     cnt++;
                  }
 
-                System.out.println("\t" + iter + " instruction(s) executed\n");
+                System.out.println("\t" + iter + " instruction(s) executed");
             }
             else if (input[0].equals("r")) {
 
@@ -408,7 +408,7 @@ public class lab3 {
 
             }
             else if (input[0].equals("h")){
-                System.out.println("h = show help\nd = dump register state\ns = single step through the program (i.e. execute 1 instruction and stop)\ns num = step through num instructions of the program\nr = run until the program ends\nm num1 num2 = display data memory from location num1 to num2\nc = clear all registers, memory, and the program counter to 0\nq = exit the program");
+                System.out.println("\nh = show help\nd = dump register state\ns = single step through the program (i.e. execute 1 instruction and stop)\ns num = step through num instructions of the program\nr = run until the program ends\nm num1 num2 = display data memory from location num1 to num2\nc = clear all registers, memory, and the program counter to 0\nq = exit the program\n");
 
             }
             else if (input[0].equals("c")){
@@ -418,17 +418,20 @@ public class lab3 {
                     Map.Entry reg = (Map.Entry)it.next();
                     registers.replace((String)reg.getKey(),0);
                 }
-                System.out.println("Simulator reset");
+                System.out.println("Simulator reset\n");
 
             }
             else if (input[0].equals("m")){
+                System.out.print("\n");
                 for(int j = Integer.parseInt(input[1]);j<=Integer.parseInt(input[2]);j++){
                     System.out.println("["+j+"]" +" = " + dataMem[j]);
                 }
+                System.out.print("\n");
 
             }
             else if (input[0].equals("d")){
-                System.out.println("pc = " +registers.get("pc") +"$0 = "+registers.get("0")+          "$v0 = "+registers.get("v0")+         "$v1 = "+registers.get("v1")+         "$a0 = "+registers.get("a0")+ "\n$a1 = "+registers.get("a1")+         "$a2 = "+registers.get("a2")+         "$a3 = "+registers.get("a3")+         "$t0 = "+registers.get("t0")+"\n$t1 = "+registers.get("t1")+         "$t2 = "+registers.get("t2")+         "$t3 = "+registers.get("t3")+         "$t4 = "+registers.get("t4")+"\n$t5 = "+registers.get("t5")+         "$t6 = "+registers.get("t6")+         "$t7 = "+registers.get("t7")+         "$s0 = "+registers.get("s0")+"\n$s1 = "+registers.get("s1")+         "$s2 = "+registers.get("s2")+         "$s3 = "+registers.get("s3")+         "$s4 = "+registers.get("s4")+"\n$s5 = "+registers.get("s5")+         "$s6 = "+registers.get("s6")+         "$s7 = "+registers.get("s7")+         "$t8 = "+registers.get("t8")+"\n$t9 = "+registers.get("t9")+         "$sp = "+registers.get("sp")+         "$ra = "+registers.get("ra"));
+                System.out.println("\npc = "+registers.get("pc")+"\n$0 = "+registers.get("0")+"$v0 = "+registers.get("v0")+"$v1 = "+registers.get("v1")+"$a0 = "+registers.get("a0")+ "\n$a1 = "+registers.get("a1")+"$a2 = "+registers.get("a2")+"$a3 = "+registers.get("a3")+"$t0 = "+registers.get("t0")+"\n$t1 = "+registers.get("t1")+"$t2 = "+registers.get("t2")+"$t3 = "+registers.get("t3")+"$t4 = "+registers.get("t4")+"\n$t5 = "+registers.get("t5")+"$t6 = "+registers.get("t6")+"$t7 = "+registers.get("t7")+"$s0 = "+registers.get("s0")+"\n$s1 = "+registers.get("s1")+"$s2 = "+registers.get("s2")+"$s3 = "+registers.get("s3")+"$s4 = "+registers.get("s4")+"\n$s5 = "+registers.get("s5")+"$s6 = "+registers.get("s6")+"$s7 = "+registers.get("s7")+"$t8 = "+registers.get("t8")+"\n$t9 = "+registers.get("t9")+"$sp = "+registers.get("sp")+"$ra = "+registers.get("ra")+"\n");
+
             }
 
         }
