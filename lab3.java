@@ -113,10 +113,8 @@ public class lab3 {
                 input = myObj.nextLine().trim().split(" ");
             }
             if(scriptFlag == true){
-                if (input[0].equals("s")){
-                    if(input.length > 1){
+                if (input[0].equals("s") && input.length > 1){
                         System.out.println(input[0] + " " + input[1]);
-                    }
                 }
                 else if (input[0].equals("m")){
                     System.out.println(input[0] + " " + input[1] + " " + input[2]);
