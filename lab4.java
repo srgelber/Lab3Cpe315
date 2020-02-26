@@ -1,5 +1,6 @@
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.lang.reflect.Array;
 import java.util.Scanner;
 import java.util.*;
 
@@ -89,7 +90,6 @@ public class lab4 {
         pipe_regs.add(t);
 
         System.out.println(pipe_regs);
-
         int pr_cap = 4;
 
         int if_id = 0;
@@ -98,8 +98,14 @@ public class lab4 {
         int mem_wb = 3;
 
         int br_flag = 0;
+        int br_timer = 0;
+
         int lw_flag = 0;
+        int lw_timer = 0;
+
         int j_flag = 0;
+
+        int cyc_cnt = 0;
 
         // start of lab3
         int[] dataMem = new int[8192];
@@ -121,14 +127,6 @@ public class lab4 {
         while (!input[0].equals("q")){
             System.out.print("mips> ");
 
-            //check pipe regs here
-            /*if (pipe_regs.get(exe_mem).equals("lw") && ){
-                lw_flag = 1;
-
-                String temp = pipe_regs.get(id_exe);
-                pipe_regs.set(id_exe, "stall");
-                pipe_regs.set(if_id, "temp");
-            }*/
 
             if(scriptFlag == true){
                 if(myObj.hasNext()){
@@ -156,6 +154,7 @@ public class lab4 {
                  int iter = 1;
                  int cnt = 0;
 
+
                  if (input.length > 1){
                      int num = Integer.parseInt(input[1]);
                      if( num > 0){
@@ -168,19 +167,70 @@ public class lab4 {
 
                      //System.out.println(currCmd);
 
+                     // pipe reg iterator
                      int pr_location = pr_cap - 1;
-                     while (pr_location > -1){
+                     while (pr_location > -1 && lw_timer == 0){
                          if (pr_location == 0) {
                              pipe_regs.set(0, currCmd);
                          }
                          else {
-
                              pipe_regs.set(pr_location, pipe_regs.get(pr_location - 1));
                          }
-
                          pr_location--;
+
                      }
 
+                     cyc_cnt++;
+
+                     //lw check
+                     if (lw_flag == 1){
+
+                         lw_timer++;
+
+                         if (lw_timer == 2){
+                             ArrayList<String> temp = pipe_regs.get(id_exe);
+                             ArrayList<String> stall = new ArrayList<String>(Arrays.asList("stall"));
+                             pipe_regs.set(id_exe, stall);
+                             pipe_regs.set(exe_mem, temp);
+
+                             currPos--;
+
+                             lw_flag = 0;
+                             lw_timer = 0;
+                         }
+
+
+                     }
+
+                     if (j_flag == 1){
+
+                         ArrayList<String> squash = new ArrayList<String>(Arrays.asList("squash"));
+                         pipe_regs.set(if_id, squash);
+
+
+                        j_flag = 0;
+                     }
+
+                     if (br_flag == 1){
+
+                         br_timer++;
+
+                         if (br_timer == 3){
+                             ArrayList<String> squash = new ArrayList<String>(Arrays.asList("squash"));
+                             pipe_regs.set(if_id, squash);
+                             pipe_regs.set(id_exe, squash);
+                             pipe_regs.set(exe_mem, squash);
+
+                             currCmd = squash;
+
+                             br_flag = 0;
+                             br_timer = 0;
+                         }
+
+
+                     }
+
+                     if (lw_timer == 0 && br_timer == 0){   // squash check
                      if (currCmd.get(0).equals("add")){
 
                          String destReg = (String) currCmd.get(1);
@@ -250,32 +300,54 @@ public class lab4 {
 
                          registers.put(destReg, res);
                      }
-                    else if (currCmd.get(0).equals("beq")){
+                    else if (currCmd.get(0).equals("beq")) {
 
-                        String readReg1 = (String) currCmd.get(1);
-                        String readReg2 = (String) currCmd.get(2);
-                        String offset = (String) currCmd.get(3);
+                         String readReg1 = (String) currCmd.get(1);
+                         String readReg2 = (String) currCmd.get(2);
+                         String offset = (String) currCmd.get(3);
 
-                        if (registers.get(readReg1) == registers.get(readReg2)) currPos = (int) labelDict.get(offset) - 1;
+                         if (registers.get(readReg1) == registers.get(readReg2)) {
+                             currPos = (int) labelDict.get(offset) - 1;
 
-                    }
-                    else if (currCmd.get(0).equals("bne")){
+                             currPos-=3;
 
-                        String readReg1 = (String) currCmd.get(1);
-                        String readReg2 = (String) currCmd.get(2);
-                        String offset = (String) currCmd.get(3);
+                             br_flag = 1;
+                         }
+                     }
+                    else if (currCmd.get(0).equals("bne")) {
 
-                        if (registers.get(readReg1) != registers.get(readReg2)) currPos = (int) labelDict.get(offset) - 1;
-                    }
-                    else if (currCmd.get(0).equals("lw")){
+                         String readReg1 = (String) currCmd.get(1);
+                         String readReg2 = (String) currCmd.get(2);
+                         String offset = (String) currCmd.get(3);
 
-                        String destReg = (String) currCmd.get(1);
-                        String offset = (String) currCmd.get(2);
-                        String srcReg = (String) currCmd.get(3);
+                         if (registers.get(readReg1) != registers.get(readReg2)) {
+                             currPos = (int) labelDict.get(offset) - 1;
 
-                        int res = dataMem[registers.get(srcReg) + Integer.parseInt(offset)];
+                             currPos-=3;
 
-                        registers.put(destReg, res);
+                             br_flag = 1;
+                         }
+                     }
+                    else if (currCmd.get(0).equals("lw")) {
+
+                         String destReg = (String) currCmd.get(1);
+                         String offset = (String) currCmd.get(2);
+                         String srcReg = (String) currCmd.get(3);
+
+                         int res = dataMem[registers.get(srcReg) + Integer.parseInt(offset)];
+
+                         registers.put(destReg, res);
+
+                         // lw set
+                         if ((currPos != instructionArray.size() - 1)
+                                 && !instructionArray.get(currPos + 1).get(0).equals("j")
+                                 && !instructionArray.get(currPos + 1).get(0).equals("jal")
+                                 && (destReg.equals(instructionArray.get(currPos + 1).get(1))
+                                 || destReg.equals(instructionArray.get(currPos + 1).get(2))
+                                 || destReg.equals(instructionArray.get(currPos + 1).get(3))))
+                         {
+                             lw_flag = 1;
+                         }
                     }
                     else if (currCmd.get(0).equals("sw")){
 
@@ -290,6 +362,10 @@ public class lab4 {
                         String target = (String) currCmd.get(1);
 
                         currPos = (int) labelDict.get(target) - 1;
+
+                        currPos--;
+
+                        j_flag = 1;
                     }
                     else if (currCmd.get(0).equals("jal")){
 
@@ -298,15 +374,26 @@ public class lab4 {
                         registers.put("ra", currPos + 1);
 
                         currPos = (int) labelDict.get(target) - 1;
+
+                        currPos--;
+
+                        j_flag = 1;
                     }
                     else if (currCmd.get(0).equals("jr")){
                         String readReg1 = (String) currCmd.get(1);
 
                         currPos = registers.get(readReg1) - 1;
+
+                        currPos--;
+
+                        j_flag = 1;
                     }
 
-                    currPos++;
-                    registers.put("pc", currPos);
+                     }
+
+                     if (lw_timer != 2) currPos++;
+
+                     registers.put("pc", currPos);
 
                     cnt++;
                  }
@@ -321,137 +408,250 @@ public class lab4 {
                     ArrayList currCmd = instructionArray.get(currPos);
                     // System.out.println(currCmd);
 
-                    if (currCmd.get(0).equals("add")){
-
-                        String destReg = (String) currCmd.get(1);
-                        String readReg1 = (String) currCmd.get(2);
-                        String readReg2 = (String) currCmd.get(3);
-
-                        int res = registers.get(readReg1) + registers.get(readReg2);
-
-                        registers.put(destReg, res);
-                    }
-                    else if (currCmd.get(0).equals("and")){
-
-                        String destReg = (String) currCmd.get(1);
-                        String readReg1 = (String) currCmd.get(2);
-                        String readReg2 = (String) currCmd.get(3);
-
-                        int res = registers.get(readReg1) & registers.get(readReg2);
-
-                        registers.put(destReg, res);
-                    }
-                    else if (currCmd.get(0).equals("or")){
-
-                        String destReg = (String) currCmd.get(1);
-                        String readReg1 = (String) currCmd.get(2);
-                        String readReg2 = (String) currCmd.get(3);
-
-                        int res = registers.get(readReg1) | registers.get(readReg2);
-
-                        registers.put(destReg, res);
-                    }
-                    else if (currCmd.get(0).equals("sub")){
-
-                        String destReg = (String) currCmd.get(1);
-                        String readReg1 = (String) currCmd.get(2);
-                        String readReg2 = (String) currCmd.get(3);
-
-                        int res = registers.get(readReg1) - registers.get(readReg2);
-
-                        registers.put(destReg, res);
-                    }
-                    else if (currCmd.get(0).equals("slt")){
-
-                        String destReg = (String) currCmd.get(1);
-                        String readReg1 = (String) currCmd.get(2);
-                        String readReg2 = (String) currCmd.get(3);
-
-                        if (registers.get(readReg1) < registers.get(readReg2)) registers.put(destReg, 1);
-                        else registers.put(destReg, 0);
-                    }
-                    else if (currCmd.get(0).equals("sll")){
-
-                        String destReg = (String) currCmd.get(1);
-                        String readReg1 = (String) currCmd.get(2);
-                        String imm = (String) currCmd.get(3);
-
-                        int res = registers.get(readReg1) << Integer.parseInt(imm);
-
-                        registers.put(destReg, res);
-                    }
-                    else if (currCmd.get(0).equals("addi")){
-
-                        String destReg = (String) currCmd.get(1);
-                        String readReg1 = (String) currCmd.get(2);
-                        String imm = (String) currCmd.get(3);
-
-                        int res = registers.get(readReg1) + Integer.parseInt(imm);
-
-                        registers.put(destReg, res);
-                    }
-                    else if (currCmd.get(0).equals("beq")){
-
-                        String readReg1 = (String) currCmd.get(1);
-                        String readReg2 = (String) currCmd.get(2);
-                        String offset = (String) currCmd.get(3);
-
-                        if (registers.get(readReg1) == registers.get(readReg2)) currPos = (int) labelDict.get(offset) - 1;
+                    // pipe reg iterator
+                    int pr_location = pr_cap - 1;
+                    while (pr_location > -1 && lw_timer == 0){
+                        if (pr_location == 0) {
+                            pipe_regs.set(0, currCmd);
+                        }
+                        else {
+                            pipe_regs.set(pr_location, pipe_regs.get(pr_location - 1));
+                        }
+                        pr_location--;
 
                     }
-                    else if (currCmd.get(0).equals("bne")){
 
-                        String readReg1 = (String) currCmd.get(1);
-                        String readReg2 = (String) currCmd.get(2);
-                        String offset = (String) currCmd.get(3);
+                    cyc_cnt++;
 
-                        if (registers.get(readReg1) != registers.get(readReg2)) currPos = (int) labelDict.get(offset) - 1;
-                    }
-                    else if (currCmd.get(0).equals("lw")){
+                    //lw check
+                    if (lw_flag == 1){
 
-                        String destReg = (String) currCmd.get(1);
-                        String offset = (String) currCmd.get(2);
-                        String srcReg = (String) currCmd.get(3);
+                        lw_timer++;
 
-                        int res = dataMem[registers.get(srcReg) + Integer.parseInt(offset)];
+                        if (lw_timer == 2){
+                            ArrayList<String> temp = pipe_regs.get(id_exe);
+                            ArrayList<String> stall = new ArrayList<String>(Arrays.asList("stall"));
+                            pipe_regs.set(id_exe, stall);
+                            pipe_regs.set(exe_mem, temp);
 
-                        registers.put(destReg, res);
-                    }
-                    else if (currCmd.get(0).equals("sw")){
+                            currPos--;
 
-                        String destReg = (String) currCmd.get(1);
-                        String offset = (String) currCmd.get(2);
-                        String srcReg = (String) currCmd.get(3);
+                            lw_flag = 0;
+                            lw_timer = 0;
+                        }
 
-                        dataMem[registers.get(srcReg) + Integer.parseInt(offset)] = registers.get(destReg);
-                    }
-                    else if (currCmd.get(0).equals("j")){
 
-                        String target = (String) currCmd.get(1);
-
-                        currPos = (int) labelDict.get(target) - 1;
-                    }
-                    else if (currCmd.get(0).equals("jal")){
-
-                        String target = (String) currCmd.get(1);
-
-                        registers.put("ra", currPos + 1);
-
-                        currPos = (int) labelDict.get(target) - 1;
-                    }
-                    else if (currCmd.get(0).equals("jr")){
-                        String readReg1 = (String) currCmd.get(1);
-
-                        currPos = registers.get(readReg1) - 1;
                     }
 
-                    currPos++;
+                    if (j_flag == 1){
+
+                        ArrayList<String> squash = new ArrayList<String>(Arrays.asList("squash"));
+                        pipe_regs.set(if_id, squash);
+
+
+                        j_flag = 0;
+                    }
+
+                    if (br_flag == 1){
+
+                        br_timer++;
+
+                        if (br_timer == 3){
+                            ArrayList<String> squash = new ArrayList<String>(Arrays.asList("squash"));
+                            pipe_regs.set(if_id, squash);
+                            pipe_regs.set(id_exe, squash);
+                            pipe_regs.set(exe_mem, squash);
+
+                            currCmd = squash;
+
+                            br_flag = 0;
+                            br_timer = 0;
+                        }
+
+
+                    }
+
+                    if (lw_timer == 0 && br_timer == 0){   // squash check
+                        if (currCmd.get(0).equals("add")){
+
+                            String destReg = (String) currCmd.get(1);
+                            String readReg1 = (String) currCmd.get(2);
+                            String readReg2 = (String) currCmd.get(3);
+
+                            int res = registers.get(readReg1) + registers.get(readReg2);
+
+                            registers.put(destReg, res);
+                        }
+                        else if (currCmd.get(0).equals("and")){
+
+                            String destReg = (String) currCmd.get(1);
+                            String readReg1 = (String) currCmd.get(2);
+                            String readReg2 = (String) currCmd.get(3);
+
+                            int res = registers.get(readReg1) & registers.get(readReg2);
+
+                            registers.put(destReg, res);
+                        }
+                        else if (currCmd.get(0).equals("or")){
+
+                            String destReg = (String) currCmd.get(1);
+                            String readReg1 = (String) currCmd.get(2);
+                            String readReg2 = (String) currCmd.get(3);
+
+                            int res = registers.get(readReg1) | registers.get(readReg2);
+
+                            registers.put(destReg, res);
+                        }
+                        else if (currCmd.get(0).equals("sub")){
+
+                            String destReg = (String) currCmd.get(1);
+                            String readReg1 = (String) currCmd.get(2);
+                            String readReg2 = (String) currCmd.get(3);
+
+                            int res = registers.get(readReg1) - registers.get(readReg2);
+
+                            registers.put(destReg, res);
+                        }
+                        else if (currCmd.get(0).equals("slt")){
+
+                            String destReg = (String) currCmd.get(1);
+                            String readReg1 = (String) currCmd.get(2);
+                            String readReg2 = (String) currCmd.get(3);
+
+                            if (registers.get(readReg1) < registers.get(readReg2)) registers.put(destReg, 1);
+                            else registers.put(destReg, 0);
+                        }
+                        else if (currCmd.get(0).equals("sll")){
+
+                            String destReg = (String) currCmd.get(1);
+                            String readReg1 = (String) currCmd.get(2);
+                            String imm = (String) currCmd.get(3);
+
+                            int res = registers.get(readReg1) << Integer.parseInt(imm);
+
+                            registers.put(destReg, res);
+                        }
+                        else if (currCmd.get(0).equals("addi")){
+
+                            String destReg = (String) currCmd.get(1);
+                            String readReg1 = (String) currCmd.get(2);
+                            String imm = (String) currCmd.get(3);
+
+                            int res = registers.get(readReg1) + Integer.parseInt(imm);
+
+                            registers.put(destReg, res);
+                        }
+                        else if (currCmd.get(0).equals("beq")) {
+
+                            String readReg1 = (String) currCmd.get(1);
+                            String readReg2 = (String) currCmd.get(2);
+                            String offset = (String) currCmd.get(3);
+
+                            if (registers.get(readReg1) == registers.get(readReg2)) {
+                                currPos = (int) labelDict.get(offset) - 1;
+
+                                currPos-=3;
+
+                                br_flag = 1;
+                            }
+                        }
+                        else if (currCmd.get(0).equals("bne")) {
+
+                            String readReg1 = (String) currCmd.get(1);
+                            String readReg2 = (String) currCmd.get(2);
+                            String offset = (String) currCmd.get(3);
+
+                            if (registers.get(readReg1) != registers.get(readReg2)) {
+                                currPos = (int) labelDict.get(offset) - 1;
+
+                                currPos-=3;
+
+                                br_flag = 1;
+                            }
+                        }
+                        else if (currCmd.get(0).equals("lw")) {
+
+                            String destReg = (String) currCmd.get(1);
+                            String offset = (String) currCmd.get(2);
+                            String srcReg = (String) currCmd.get(3);
+
+                            int res = dataMem[registers.get(srcReg) + Integer.parseInt(offset)];
+
+                            registers.put(destReg, res);
+
+                            // lw set
+                            if ((currPos != instructionArray.size() - 1)
+                                    && !instructionArray.get(currPos + 1).get(0).equals("j")
+                                    && !instructionArray.get(currPos + 1).get(0).equals("jal")
+                                    && (destReg.equals(instructionArray.get(currPos + 1).get(1))
+                                    || destReg.equals(instructionArray.get(currPos + 1).get(2))
+                                    || destReg.equals(instructionArray.get(currPos + 1).get(3))))
+                            {
+                                lw_flag = 1;
+                            }
+                        }
+                        else if (currCmd.get(0).equals("sw")){
+
+                            String destReg = (String) currCmd.get(1);
+                            String offset = (String) currCmd.get(2);
+                            String srcReg = (String) currCmd.get(3);
+
+                            dataMem[registers.get(srcReg) + Integer.parseInt(offset)] = registers.get(destReg);
+                        }
+                        else if (currCmd.get(0).equals("j")){
+
+                            String target = (String) currCmd.get(1);
+
+                            currPos = (int) labelDict.get(target) - 1;
+
+                            currPos--;
+
+                            j_flag = 1;
+                        }
+                        else if (currCmd.get(0).equals("jal")){
+
+                            String target = (String) currCmd.get(1);
+
+                            registers.put("ra", currPos + 1);
+
+                            currPos = (int) labelDict.get(target) - 1;
+
+                            currPos--;
+
+                            j_flag = 1;
+                        }
+                        else if (currCmd.get(0).equals("jr")){
+                            String readReg1 = (String) currCmd.get(1);
+
+                            currPos = registers.get(readReg1) - 1;
+
+                            currPos--;
+
+                            j_flag = 1;
+                        }
+
+                    }
+
+                    if (lw_timer != 2) currPos++;
+
                     registers.put("pc", currPos);
+
+
+                    // ADD STUFF
+
+
+
                 }
 
             }
             else if (input[0].equals("h")){
-                System.out.println("\nh = show help\nd = dump register state\ns = single step through the program (i.e. execute 1 instruction and stop)\ns num = step through num instructions of the program\nr = run until the program ends\nm num1 num2 = display data memory from location num1 to num2\nc = clear all registers, memory, and the program counter to 0\nq = exit the program\n");
+                System.out.println("\nh = show help\nd = dump register state\np = show pipeline registers\ns = single step through the program (i.e. execute 1 instruction and stop)\ns num = step through num instructions of the program\nr = run until the program ends and display timing summary\nm num1 num2 = display data memory from location num1 to num2\nc = clear all registers, memory, and the program counter to 0\nq = exit the program\n");
+
+            }
+            else if (input[0].equals("p")){
+                System.out.println("pc      if/id   id/exe  exe/mem mem/wb");
+                System.out.println(registers.get("pc")+"       "+pipe_regs.get(0).get(0)+"   "+pipe_regs.get(1).get(0)+"   "+pipe_regs.get(2).get(0)+"   "+pipe_regs.get(3).get(0));
+
 
             }
             else if (input[0].equals("c")){
